@@ -253,20 +253,15 @@ private:
 
   enum class _State {
     __no_value,
-    __value
-#ifndef _LIBCPP_NO_EXCEPTIONS
-    ,
+    __value,
     __exception
-#endif
   };
 
   _State __state_ = _State::__no_value;
   union {
     char __empty_;
     _Tp __value_;
-#ifndef _LIBCPP_NO_EXCEPTIONS
     exception_ptr __exception_;
-#endif
   };
 };
 
@@ -322,13 +317,9 @@ private:
   union {
     char __empty_;
     _Ptr __pointer_;
-#ifndef _LIBCPP_NO_EXCEPTIONS
     exception_ptr __exception_;
-#endif
   };
-#ifndef _LIBCPP_NO_EXCEPTIONS
   bool __has_exception_ = false;
-#endif
 };
 
 template <>
@@ -359,9 +350,7 @@ private:
 #endif
   }
 
-#ifndef _LIBCPP_NO_EXCEPTIONS
   exception_ptr __exception_;
-#endif
 };
 
 template <typename _Tp>
