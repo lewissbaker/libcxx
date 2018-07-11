@@ -407,12 +407,6 @@ public:
   }
 
   _LIBCPP_INLINE_VISIBILITY
-  task& operator=(task&& __other) _NOEXCEPT {
-    task{move(__other)}.swap(*this);
-    return *this;
-  }
-
-  _LIBCPP_INLINE_VISIBILITY
   void swap(task& __other) _NOEXCEPT { _VSTD::swap(__coro_, __other.__coro_); }
 
   _LIBCPP_INLINE_VISIBILITY
