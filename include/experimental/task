@@ -246,7 +246,7 @@ private:
   void __throw_if_exception() {
 #ifndef _LIBCPP_NO_EXCEPTIONS
     if (__state_ == _State::__exception) {
-      rethrow_exception(__exception_);
+      _VSTD::rethrow_exception(__exception_);
     }
 #endif
   }
@@ -291,7 +291,7 @@ public:
 
   void unhandled_exception() _NOEXCEPT {
 #ifndef _LIBCPP_NO_EXCEPTIONS
-    new (static_cast<void*>(&__exception_)) exception_ptr(current_exception());
+    ::new (static_cast<void*>(&__exception_)) exception_ptr(current_exception());
     __has_exception_ = true;
 #else
     _LIBCPP_ASSERT(
@@ -300,7 +300,7 @@ public:
   }
 
   void return_value(_Tp& __value) _NOEXCEPT {
-    new (static_cast<void*>(&__pointer_)) _Ptr(_VSTD::addressof(__value));
+    ::new (static_cast<void*>(&__pointer_)) _Ptr(_VSTD::addressof(__value));
   }
 
   _Tp& __lvalue_result() {
@@ -314,7 +314,7 @@ private:
   void __throw_if_exception() {
 #ifndef _LIBCPP_NO_EXCEPTIONS
     if (__has_exception_) {
-      rethrow_exception(__exception_);
+      _VSTD::rethrow_exception(__exception_);
     }
 #endif
   }
@@ -342,7 +342,7 @@ public:
 
   void unhandled_exception() _NOEXCEPT {
 #ifndef _LIBCPP_NO_EXCEPTIONS
-    __exception_ = current_exception();
+    __exception_ = _VSTD::current_exception();
 #endif
   }
 
@@ -354,7 +354,7 @@ private:
   void __throw_if_exception() {
 #ifndef _LIBCPP_NO_EXCEPTIONS
     if (__exception_) {
-      rethrow_exception(__exception_);
+      _VSTD::rethrow_exception(__exception_);
     }
 #endif
   }
