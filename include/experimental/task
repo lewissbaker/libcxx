@@ -237,7 +237,7 @@ public:
     return __value_;
   }
 
-  _Tp&& __rvalue_result() {
+  _Tp __rvalue_result() {
     __throw_if_exception();
     return static_cast<_Tp&&>(__value_);
   }
