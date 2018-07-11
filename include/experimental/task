@@ -189,7 +189,7 @@ class _LIBCPP_TEMPLATE_VIS __task_promise final : public __task_promise_base {
   using _Handle = coroutine_handle<__task_promise>;
 
 public:
-  __task_promise() _NOEXCEPT {}
+  __task_promise() _NOEXCEPT = default;
 
   ~__task_promise() {
     switch (__state_) {
@@ -276,7 +276,7 @@ class __task_promise<_Tp&> final : public __task_promise_base {
   using _Handle = coroutine_handle<__task_promise>;
 
 public:
-  __task_promise() _NOEXCEPT {}
+  __task_promise() _NOEXCEPT = default;
 
   ~__task_promise() {
 #ifndef _LIBCPP_NO_EXCEPTIONS
