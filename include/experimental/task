@@ -35,6 +35,8 @@ _LIBCPP_BEGIN_NAMESPACE_EXPERIMENTAL_COROUTINES
 
 ////// task<T>
 
+template<typename _Tp = void> class task;
+
 struct __task_promise_final_awaitable {
   _LIBCPP_INLINE_VISIBILITY
   _LIBCPP_CONSTEXPR bool await_ready() const _NOEXCEPT { return false; }
@@ -236,7 +238,7 @@ public:
   }
 
   _LIBCPP_INLINE_VISIBILITY
-  _Handle get_return_object() _NOEXCEPT { return _Handle::from_promise(*this); }
+  task<_Tp> get_return_object() _NOEXCEPT;
 
   void unhandled_exception() _NOEXCEPT {
 #ifndef _LIBCPP_NO_EXCEPTIONS
@@ -333,7 +335,7 @@ public:
   }
 
   _LIBCPP_INLINE_VISIBILITY
-  _Handle get_return_object() _NOEXCEPT { return _Handle::from_promise(*this); }
+  task<_Tp&> get_return_object() _NOEXCEPT;
 
   void unhandled_exception() _NOEXCEPT {
 #ifndef _LIBCPP_NO_EXCEPTIONS
@@ -378,7 +380,8 @@ class __task_promise<void> final : public __task_promise_base {
   using _Handle = coroutine_handle<__task_promise>;
 
 public:
-  _Handle get_return_object() _NOEXCEPT { return _Handle::from_promise(*this); }
+
+  task<void> get_return_object() _NOEXCEPT;
 
   void return_void() _NOEXCEPT {}
 
@@ -404,7 +407,7 @@ private:
   exception_ptr __exception_;
 };
 
-template <typename _Tp = void>
+template <typename _Tp>
 class _LIBCPP_TEMPLATE_VIS _LIBCPP_NODISCARD_AFTER_CXX17 task {
 public:
   using promise_type = __task_promise<_Tp>;
@@ -430,8 +433,6 @@ private:
   };
 
 public:
-  _LIBCPP_INLINE_VISIBILITY
-  task(_Handle __coro) _NOEXCEPT : __coro_(__coro) {}
 
   _LIBCPP_INLINE_VISIBILITY
   task(task&& __other) _NOEXCEPT
@@ -484,8 +485,31 @@ public:
   }
 
 private:
+
+  friend class __task_promise<_Tp>;
+
+  _LIBCPP_INLINE_VISIBILITY
+  task(_Handle __coro) _NOEXCEPT : __coro_(__coro) {}
+
   _Handle __coro_;
 };
+
+template<typename _Tp>
+task<_Tp> __task_promise<_Tp>::get_return_object() _NOEXCEPT
+{
+  return task<_Tp>{ _Handle::from_promise(*this) };
+}
+
+template<typename _Tp>
+task<_Tp&> __task_promise<_Tp&>::get_return_object() _NOEXCEPT
+{
+  return task<_Tp&>{ _Handle::from_promise(*this) };
+}
+
+task<void> __task_promise<void>::get_return_object() _NOEXCEPT
+{
+  return task<void>{ _Handle::from_promise(*this) };
+}
 
 _LIBCPP_END_NAMESPACE_EXPERIMENTAL_COROUTINES
 
