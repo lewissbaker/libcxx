@@ -55,6 +55,10 @@ struct __task_promise_final_awaitable {
 class _LIBCPP_TYPE_VIS __task_promise_base {
   using _DeallocFunc = void(void* __ptr, size_t __size) _NOEXCEPT;
 
+  template <typename _Alloc>
+  static constexpr bool __allocator_needs_to_be_stored =
+    !allocator_traits<_Alloc>::is_always_equal::value ||
+    !is_default_constructible_v<_Alloc>;
 
   static _LIBCPP_CONSTEXPR size_t
   __get_dealloc_func_offset(size_t __frameSize) _NOEXCEPT {
@@ -79,7 +83,14 @@ class _LIBCPP_TYPE_VIS __task_promise_base {
   template <typename _Alloc>
   static _LIBCPP_CONSTEXPR size_t
   __get_padded_frame_size_with_allocator(size_t __frameSize) _NOEXCEPT {
-    return __get_allocator_offset<_Alloc>(__frameSize) + sizeof(_Alloc);
+    if constexpr (__allocator_needs_to_be_stored<_Alloc>)
+    {
+      return __get_allocator_offset<_Alloc>(__frameSize) + sizeof(_Alloc);
+    }
+    else
+    {
+      return __get_padded_frame_size(__frameSize);
+    }
   }
 
   _LIBCPP_INLINE_VISIBILITY
@@ -124,40 +135,55 @@ public:
   template <typename _Alloc, typename... _Args>
   static void* operator new(size_t __size, allocator_arg_t, _Alloc& __allocator,
                             _Args&...) {
-    static_assert(is_same<typename _Alloc::value_type, char>::value,
-                  "task<T> coroutine custom allocator must have a 'value_type' "
-                  "of 'char'.");
+    using _CharAlloc =
+     typename allocator_traits<_Alloc>::template rebind_alloc<char>;
 
-    void* __pointer = __allocator.allocate(
-        __get_padded_frame_size_with_allocator<_Alloc>(__size));
+    _CharAlloc __charAllocator{ __allocator };
+
+    void* __pointer = __charAllocator.allocate(
+        __get_padded_frame_size_with_allocator<_CharAlloc>(__size));
 
     _DeallocFunc*& __deallocFunc = __get_dealloc_func(__pointer, __size);
     __deallocFunc = [](void* __pointer, size_t __size) _NOEXCEPT {
-      static_assert(is_nothrow_move_constructible<_Alloc>::value,
-                    "task<T> coroutine custom allocator requires a noexcept "
-                    "move constructor");
 
-      _Alloc& __allocatorInFrame = __get_allocator<_Alloc>(__pointer, __size);
-      _Alloc __allocatorOnStack = _VSTD::move(__allocatorInFrame);
-      __allocatorInFrame.~_Alloc();
+      // Allocators are required to not throw from their move constructors
+      // however they aren't required to be declared noexcept so we can't
+      // actually check this with a static_assert.
+      //
+      //static_assert(is_nothrow_move_constructible<_Alloc>::value,
+      //              "task<T> coroutine custom allocator requires a noexcept "
+      //              "move constructor");
 
       size_t __paddedSize =
-          __get_padded_frame_size_with_allocator<_Alloc>(__size);
+          __get_padded_frame_size_with_allocator<_CharAlloc>(__size);
 
-      // Allocator requirements state that deallocate() must not throw.
-      // See [allocator.requirements] from C++ standard.
-      // We are relying on that here.
-      __allocatorOnStack.deallocate(static_cast<char*>(__pointer),
-                                    __paddedSize);
+      if constexpr (__allocator_needs_to_be_stored<_CharAlloc>)
+      {
+        _CharAlloc& __allocatorInFrame = __get_allocator<_CharAlloc>(__pointer, __size);
+        _CharAlloc __allocatorOnStack = _VSTD::move(__allocatorInFrame);
+        __allocatorInFrame.~_CharAlloc();
+        // Allocator requirements state that deallocate() must not throw.
+        // See [allocator.requirements] from C++ standard.
+        // We are relying on that here.
+        __allocatorOnStack.deallocate(static_cast<char*>(__pointer), __paddedSize);
+      }
+      else
+      {
+        _CharAlloc __allocator;
+        __allocator.deallocate(static_cast<char*>(__pointer), __paddedSize);
+      }
     };
 
-    // Copy the allocator into the heap frame.
-
-    // task<T> coroutine custom allocation requires the copy constructor to
-    // not throw but we can't rely on it being declared noexcept.
-    // If it did throw we'd leak the allocation here.
-    ::new (static_cast<void*>(_VSTD::addressof(
-        __get_allocator<_Alloc>(__pointer, __size)))) _Alloc(__allocator);
+    // Copy the allocator into the heap frame (if required)
+    if constexpr (__allocator_needs_to_be_stored<_CharAlloc>)
+    {
+      // task<T> coroutine custom allocation requires the copy constructor to
+      // not throw but we can't rely on it being declared noexcept.
+      // If it did throw we'd leak the allocation here.
+      ::new (static_cast<void*>(_VSTD::addressof(
+          __get_allocator<_CharAlloc>(__pointer, __size))))
+          _CharAlloc(_VSTD::move(__charAllocator));
+    }
 
     return __pointer;
   }
