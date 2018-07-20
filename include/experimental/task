@@ -16,8 +16,8 @@
 #include <experimental/coroutine>
 
 #include <exception>
-#include <utility>
 #include <type_traits>
+#include <utility>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #pragma GCC system_header
@@ -35,7 +35,8 @@ _LIBCPP_BEGIN_NAMESPACE_EXPERIMENTAL_COROUTINES
 
 ////// task<T>
 
-template<typename _Tp = void> class task;
+template <typename _Tp = void>
+class task;
 
 struct __task_promise_final_awaitable {
   _LIBCPP_INLINE_VISIBILITY
@@ -59,14 +60,13 @@ class _LIBCPP_TYPE_VIS __task_promise_base {
 
   template <typename _Alloc>
   static constexpr bool __allocator_needs_to_be_stored =
-    !allocator_traits<_Alloc>::is_always_equal::value ||
-    !is_default_constructible_v<_Alloc>;
+      !allocator_traits<_Alloc>::is_always_equal::value ||
+      !is_default_constructible_v<_Alloc>;
 
   static _LIBCPP_CONSTEXPR size_t
   __get_dealloc_func_offset(size_t __frameSize) _NOEXCEPT {
-    return _VSTD_LFTS::__aligned_allocation_size(
-      __frameSize,
-      alignof(_DeallocFunc*));
+    return _VSTD_LFTS::__aligned_allocation_size(__frameSize,
+                                                 alignof(_DeallocFunc*));
   }
 
   static _LIBCPP_CONSTEXPR size_t
@@ -78,19 +78,15 @@ class _LIBCPP_TYPE_VIS __task_promise_base {
   static _LIBCPP_CONSTEXPR size_t
   __get_allocator_offset(size_t __frameSize) _NOEXCEPT {
     return _VSTD_LFTS::__aligned_allocation_size(
-      __get_padded_frame_size(__frameSize),
-      alignof(_Alloc));
+        __get_padded_frame_size(__frameSize), alignof(_Alloc));
   }
 
   template <typename _Alloc>
   static _LIBCPP_CONSTEXPR size_t
   __get_padded_frame_size_with_allocator(size_t __frameSize) _NOEXCEPT {
-    if constexpr (__allocator_needs_to_be_stored<_Alloc>)
-    {
+    if constexpr (__allocator_needs_to_be_stored<_Alloc>) {
       return __get_allocator_offset<_Alloc>(__frameSize) + sizeof(_Alloc);
-    }
-    else
-    {
+    } else {
       return __get_padded_frame_size(__frameSize);
     }
   }
@@ -112,7 +108,6 @@ class _LIBCPP_TYPE_VIS __task_promise_base {
   }
 
 public:
-
   __task_promise_base() _NOEXCEPT = default;
 
   // Explicitly disable special member functions.
@@ -138,52 +133,49 @@ public:
   static void* operator new(size_t __size, allocator_arg_t, _Alloc& __allocator,
                             _Args&...) {
     using _CharAlloc =
-     typename allocator_traits<_Alloc>::template rebind_alloc<char>;
+        typename allocator_traits<_Alloc>::template rebind_alloc<char>;
 
-    _CharAlloc __charAllocator{ __allocator };
+    _CharAlloc __charAllocator{__allocator};
 
     void* __pointer = __charAllocator.allocate(
         __get_padded_frame_size_with_allocator<_CharAlloc>(__size));
 
     _DeallocFunc*& __deallocFunc = __get_dealloc_func(__pointer, __size);
     __deallocFunc = [](void* __pointer, size_t __size) _NOEXCEPT {
-
       // Allocators are required to not throw from their move constructors
       // however they aren't required to be declared noexcept so we can't
       // actually check this with a static_assert.
       //
-      //static_assert(is_nothrow_move_constructible<_Alloc>::value,
+      // static_assert(is_nothrow_move_constructible<_Alloc>::value,
       //              "task<T> coroutine custom allocator requires a noexcept "
       //              "move constructor");
 
       size_t __paddedSize =
           __get_padded_frame_size_with_allocator<_CharAlloc>(__size);
 
-      if constexpr (__allocator_needs_to_be_stored<_CharAlloc>)
-      {
-        _CharAlloc& __allocatorInFrame = __get_allocator<_CharAlloc>(__pointer, __size);
+      if constexpr (__allocator_needs_to_be_stored<_CharAlloc>) {
+        _CharAlloc& __allocatorInFrame =
+            __get_allocator<_CharAlloc>(__pointer, __size);
         _CharAlloc __allocatorOnStack = _VSTD::move(__allocatorInFrame);
         __allocatorInFrame.~_CharAlloc();
         // Allocator requirements state that deallocate() must not throw.
         // See [allocator.requirements] from C++ standard.
         // We are relying on that here.
-        __allocatorOnStack.deallocate(static_cast<char*>(__pointer), __paddedSize);
-      }
-      else
-      {
+        __allocatorOnStack.deallocate(static_cast<char*>(__pointer),
+                                      __paddedSize);
+      } else {
         _CharAlloc __allocator;
         __allocator.deallocate(static_cast<char*>(__pointer), __paddedSize);
       }
     };
 
     // Copy the allocator into the heap frame (if required)
-    if constexpr (__allocator_needs_to_be_stored<_CharAlloc>)
-    {
+    if constexpr (__allocator_needs_to_be_stored<_CharAlloc>) {
       // task<T> coroutine custom allocation requires the copy constructor to
       // not throw but we can't rely on it being declared noexcept.
       // If it did throw we'd leak the allocation here.
-      ::new (static_cast<void*>(_VSTD::addressof(
-          __get_allocator<_CharAlloc>(__pointer, __size))))
+      ::new (static_cast<void*>(
+          _VSTD::addressof(__get_allocator<_CharAlloc>(__pointer, __size))))
           _CharAlloc(_VSTD::move(__charAllocator));
     }
 
@@ -191,7 +183,7 @@ public:
   }
 
   _LIBCPP_INLINE_VISIBILITY
-  static void operator delete(void* __pointer, size_t __size) _NOEXCEPT {
+  static void operator delete(void* __pointer, size_t __size)_NOEXCEPT {
     __get_dealloc_func(__pointer, __size)(__pointer, __size);
   }
 
@@ -218,9 +210,7 @@ class _LIBCPP_TEMPLATE_VIS __task_promise final : public __task_promise_base {
   using _Handle = coroutine_handle<__task_promise>;
 
 public:
-  __task_promise() _NOEXCEPT
-    : __state_(_State::__no_value)
-  {}
+  __task_promise() _NOEXCEPT : __state_(_State::__no_value) {}
 
   ~__task_promise() {
     switch (__state_) {
@@ -242,7 +232,8 @@ public:
 
   void unhandled_exception() _NOEXCEPT {
 #ifndef _LIBCPP_NO_EXCEPTIONS
-    ::new (static_cast<void*>(&__exception_)) exception_ptr(current_exception());
+    ::new (static_cast<void*>(&__exception_))
+        exception_ptr(current_exception());
     __state_ = _State::__exception;
 #else
     _LIBCPP_ASSERT(
@@ -250,7 +241,8 @@ public:
 #endif
   }
 
-  // Only enable return_value() overload if _Tp is implicitly constructible from _Value
+  // Only enable return_value() overload if _Tp is implicitly constructible from
+  // _Value
   template <typename _Value,
             enable_if_t<is_convertible<_Value, _Tp>::value, int> = 0>
   void return_value(_Value&& __value)
@@ -258,18 +250,17 @@ public:
     __construct_value(static_cast<_Value&&>(__value));
   }
 
-  template<typename _Value>
-  auto return_value(std::initializer_list<_Value> __initializer)
-    _NOEXCEPT_((is_nothrow_constructible_v<_Tp, std::initializer_list<_Value>>))
-    -> std::enable_if_t<std::is_constructible_v<_Tp, std::initializer_list<_Value>>>
-  {
+  template <typename _Value>
+  auto return_value(std::initializer_list<_Value> __initializer) _NOEXCEPT_(
+      (is_nothrow_constructible_v<_Tp, std::initializer_list<_Value>>))
+      -> std::enable_if_t<
+          std::is_constructible_v<_Tp, std::initializer_list<_Value>>> {
     __construct_value(_VSTD::move(__initializer));
   }
 
   auto return_value(_Tp&& __value)
-    _NOEXCEPT_((is_nothrow_move_constructible_v<_Tp>))
-    -> std::enable_if_t<std::is_move_constructible_v<_Tp>>
-  {
+      _NOEXCEPT_((is_nothrow_move_constructible_v<_Tp>))
+          -> std::enable_if_t<std::is_move_constructible_v<_Tp>> {
     __construct_value(static_cast<_Tp&&>(__value));
   }
 
@@ -284,15 +275,14 @@ public:
   }
 
 private:
-
-  template<typename... _Args>
-  void __construct_value(_Args&&... __args)
-  {
+  template <typename... _Args>
+  void __construct_value(_Args&&... __args) {
     ::new (static_cast<void*>(_VSTD::addressof(__value_)))
-      _Tp(static_cast<_Args&&>(__args)...);
+        _Tp(static_cast<_Args&&>(__args)...);
 
     // Only set __state_ after successfully constructing the value.
-    // If constructor throws then state will be updated by unhandled_exception().
+    // If constructor throws then state will be updated by
+    // unhandled_exception().
     __state_ = _State::__value;
   }
 
@@ -304,11 +294,7 @@ private:
 #endif
   }
 
-  enum class _State {
-    __no_value,
-    __value,
-    __exception
-  };
+  enum class _State { __no_value, __value, __exception };
 
   _State __state_ = _State::__no_value;
   union {
@@ -339,7 +325,8 @@ public:
 
   void unhandled_exception() _NOEXCEPT {
 #ifndef _LIBCPP_NO_EXCEPTIONS
-    ::new (static_cast<void*>(&__exception_)) exception_ptr(current_exception());
+    ::new (static_cast<void*>(&__exception_))
+        exception_ptr(current_exception());
     __has_exception_ = true;
 #else
     _LIBCPP_ASSERT(
@@ -380,7 +367,6 @@ class __task_promise<void> final : public __task_promise_base {
   using _Handle = coroutine_handle<__task_promise>;
 
 public:
-
   task<void> get_return_object() _NOEXCEPT;
 
   void return_void() _NOEXCEPT {}
@@ -413,7 +399,7 @@ public:
   using promise_type = __task_promise<_Tp>;
 
 private:
-  using _Handle = coroutine_handle<__task_promise<_Tp> >;
+  using _Handle = coroutine_handle<__task_promise<_Tp>>;
 
   class _AwaiterBase {
   public:
@@ -433,7 +419,6 @@ private:
   };
 
 public:
-
   _LIBCPP_INLINE_VISIBILITY
   task(task&& __other) _NOEXCEPT
       : __coro_(_VSTD::exchange(__other.__coro_, {})) {}
@@ -485,7 +470,6 @@ public:
   }
 
 private:
-
   friend class __task_promise<_Tp>;
 
   _LIBCPP_INLINE_VISIBILITY
@@ -494,21 +478,18 @@ private:
   _Handle __coro_;
 };
 
-template<typename _Tp>
-task<_Tp> __task_promise<_Tp>::get_return_object() _NOEXCEPT
-{
-  return task<_Tp>{ _Handle::from_promise(*this) };
+template <typename _Tp>
+task<_Tp> __task_promise<_Tp>::get_return_object() _NOEXCEPT {
+  return task<_Tp>{_Handle::from_promise(*this)};
 }
 
-template<typename _Tp>
-task<_Tp&> __task_promise<_Tp&>::get_return_object() _NOEXCEPT
-{
-  return task<_Tp&>{ _Handle::from_promise(*this) };
+template <typename _Tp>
+task<_Tp&> __task_promise<_Tp&>::get_return_object() _NOEXCEPT {
+  return task<_Tp&>{_Handle::from_promise(*this)};
 }
 
-task<void> __task_promise<void>::get_return_object() _NOEXCEPT
-{
-  return task<void>{ _Handle::from_promise(*this) };
+task<void> __task_promise<void>::get_return_object() _NOEXCEPT {
+  return task<void>{_Handle::from_promise(*this)};
 }
 
 _LIBCPP_END_NAMESPACE_EXPERIMENTAL_COROUTINES
