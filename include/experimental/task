@@ -247,7 +247,7 @@ private:
   void __throw_if_exception() {
 #ifndef _LIBCPP_NO_EXCEPTIONS
     if (__state_ == _State::__exception) {
-      _VSTD::rethrow_exception(__exception_);
+      rethrow_exception(__exception_);
     }
 #endif
   }
@@ -310,7 +310,7 @@ private:
   void __throw_if_exception() {
 #ifndef _LIBCPP_NO_EXCEPTIONS
     if (__has_exception_) {
-      _VSTD::rethrow_exception(__exception_);
+      rethrow_exception(__exception_);
     }
 #endif
   }
@@ -334,7 +334,7 @@ public:
 
   void unhandled_exception() _NOEXCEPT {
 #ifndef _LIBCPP_NO_EXCEPTIONS
-    __exception_ = _VSTD::current_exception();
+    __exception_ = current_exception();
 #endif
   }
 
@@ -346,7 +346,7 @@ private:
   void __throw_if_exception() {
 #ifndef _LIBCPP_NO_EXCEPTIONS
     if (__exception_) {
-      _VSTD::rethrow_exception(__exception_);
+      rethrow_exception(__exception_);
     }
 #endif
   }
