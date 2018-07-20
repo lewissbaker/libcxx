@@ -12,6 +12,7 @@
 #define _LIBCPP_EXPERIMENTAL_TASK
 
 #include <experimental/__config>
+#include <experimental/__memory>
 #include <experimental/coroutine>
 
 #include <exception>
@@ -54,14 +55,12 @@ struct __task_promise_final_awaitable {
 class _LIBCPP_TYPE_VIS __task_promise_base {
   using _DeallocFunc = void(void* __ptr, size_t __size) _NOEXCEPT;
 
-  static _LIBCPP_CONSTEXPR size_t __pad(size_t __value,
-                                        size_t __alignment) _NOEXCEPT {
-    return (__value + (__alignment - 1u)) & ~(__alignment - 1u);
-  }
 
   static _LIBCPP_CONSTEXPR size_t
   __get_dealloc_func_offset(size_t __frameSize) _NOEXCEPT {
-    return __pad(__frameSize, alignof(_DeallocFunc*));
+    return _VSTD_LFTS::__aligned_allocation_size(
+      __frameSize,
+      alignof(_DeallocFunc*));
   }
 
   static _LIBCPP_CONSTEXPR size_t
@@ -72,7 +71,9 @@ class _LIBCPP_TYPE_VIS __task_promise_base {
   template <typename _Alloc>
   static _LIBCPP_CONSTEXPR size_t
   __get_allocator_offset(size_t __frameSize) _NOEXCEPT {
-    return __pad(__get_padded_frame_size(__frameSize), alignof(_Alloc));
+    return _VSTD_LFTS::__aligned_allocation_size(
+      __get_padded_frame_size(__frameSize),
+      alignof(_Alloc));
   }
 
   template <typename _Alloc>
