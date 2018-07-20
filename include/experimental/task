@@ -354,7 +354,7 @@ private:
   exception_ptr __exception_;
 };
 
-template <typename _Tp>
+template <typename _Tp = void>
 class _LIBCPP_TEMPLATE_VIS _LIBCPP_NODISCARD_AFTER_CXX17 task {
 public:
   using promise_type = __task_promise<_Tp>;
