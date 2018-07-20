@@ -226,13 +226,23 @@ public:
   template <typename _Value,
             enable_if_t<is_convertible<_Value, _Tp>::value, int> = 0>
   void return_value(_Value&& __value)
-      _NOEXCEPT_((is_nothrow_constructible<_Tp, _Value>::value)) {
-    ::new (static_cast<void*>(_VSTD::addressof(__value_)))
-        _Tp(static_cast<_Value&&>(__value));
+      _NOEXCEPT_((is_nothrow_constructible_v<_Tp, _Value>)) {
+    __construct_value(static_cast<_Value&&>(__value));
+  }
 
-    // Only set __state_ after successfully constructing the value.
-    // If constructor throws then state will be updated by unhandled_exception().
-    __state_ = _State::__value;
+  template<typename _Value>
+  auto return_value(std::initializer_list<_Value> __initializer)
+    _NOEXCEPT_((is_nothrow_constructible_v<_Tp, std::initializer_list<_Value>>))
+    -> std::enable_if_t<std::is_constructible_v<_Tp, std::initializer_list<_Value>>>
+  {
+    __construct_value(_VSTD::move(__initializer));
+  }
+
+  auto return_value(_Tp&& __value)
+    _NOEXCEPT_((is_nothrow_move_constructible_v<_Tp>))
+    -> std::enable_if_t<std::is_move_constructible_v<_Tp>>
+  {
+    __construct_value(static_cast<_Tp&&>(__value));
   }
 
   _Tp& __lvalue_result() {
@@ -246,6 +256,18 @@ public:
   }
 
 private:
+
+  template<typename... _Args>
+  void __construct_value(_Args&&... __args)
+  {
+    ::new (static_cast<void*>(_VSTD::addressof(__value_)))
+      _Tp(static_cast<_Args&&>(__args)...);
+
+    // Only set __state_ after successfully constructing the value.
+    // If constructor throws then state will be updated by unhandled_exception().
+    __state_ = _State::__value;
+  }
+
   void __throw_if_exception() {
 #ifndef _LIBCPP_NO_EXCEPTIONS
     if (__state_ == _State::__exception) {
