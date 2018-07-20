@@ -180,7 +180,7 @@ public:
   }
 
 private:
-  friend class __task_promise_final_awaitable;
+  friend struct __task_promise_final_awaitable;
 
   coroutine_handle<> __continuation_;
 };
