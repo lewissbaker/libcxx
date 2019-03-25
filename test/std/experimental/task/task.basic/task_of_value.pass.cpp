@@ -22,9 +22,7 @@ void test_returning_move_only_type()
    [](bool x) -> std::experimental::task<std::unique_ptr<int>> {
      if (x) {
        auto p = std::make_unique<int>(123);
-       // BUG: Coroutines TS wording indicates that we shouldn't need to use
-       // std::move() here.
-       co_return std::move(p);
+       co_return p; // Should be implicit std::move(p) here.
      }
 
      co_return std::make_unique<int>(456);
