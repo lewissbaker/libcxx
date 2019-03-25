@@ -130,12 +130,12 @@ public:
   }
 
   template <typename _Alloc, typename... _Args>
-  static void* operator new(size_t __size, allocator_arg_t, _Alloc& __allocator,
+  static void* operator new(size_t __size, allocator_arg_t, _Alloc& __alloc,
                             _Args&...) {
     using _CharAlloc =
         typename allocator_traits<_Alloc>::template rebind_alloc<char>;
 
-    _CharAlloc __charAllocator{__allocator};
+    _CharAlloc __charAllocator{__alloc};
 
     void* __pointer = __charAllocator.allocate(
         __get_padded_frame_size_with_allocator<_CharAlloc>(__size));
@@ -164,8 +164,8 @@ public:
         __allocatorOnStack.deallocate(static_cast<char*>(__pointer),
                                       __paddedSize);
       } else {
-        _CharAlloc __allocator;
-        __allocator.deallocate(static_cast<char*>(__pointer), __paddedSize);
+        _CharAlloc __alloc;
+        __alloc.deallocate(static_cast<char*>(__pointer), __paddedSize);
       }
     };
 
