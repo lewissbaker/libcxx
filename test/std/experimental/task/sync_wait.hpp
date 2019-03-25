@@ -30,10 +30,8 @@ public:
 
   void set() noexcept
   {
-    {
-      unique_lock<mutex> __lock{ __mutex_ };
-      __isSet_ = true;
-    }
+    unique_lock<mutex> __lock{ __mutex_ };
+    __isSet_ = true;
     __cv_.notify_all();
   }
 
