@@ -182,6 +182,12 @@ public:
     return __pointer;
   }
 
+  template <typename _This, typename _Alloc, typename... _Args>
+  static void* operator new(size_t __size, _This&, allocator_arg_t __allocArg, _Alloc& __alloc,
+                            _Args&...) {
+    return __task_promise_base::operator new(__size, __allocArg, __alloc);
+  }
+
   _LIBCPP_INLINE_VISIBILITY
   static void operator delete(void* __pointer, size_t __size)_NOEXCEPT {
     __get_dealloc_func(__pointer, __size)(__pointer, __size);

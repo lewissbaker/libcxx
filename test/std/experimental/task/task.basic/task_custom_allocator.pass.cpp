@@ -59,12 +59,16 @@ namespace
     template<typename U>
     my_allocator(const my_allocator<U>& other)
     : totalAllocated_(other.totalAllocated_)
-    {}
+    {
+      ++allocator_instance_count;
+    }
 
     template<typename U>
     my_allocator(my_allocator<U>&& other)
     : totalAllocated_(std::move(other.totalAllocated_))
-    {}
+    {
+      ++allocator_instance_count;
+    }
 
     ~my_allocator()
     {
@@ -131,10 +135,13 @@ void test_custom_allocator_type_rebinding()
     coro::sync_wait(tasks[0]);
   }
   assert(*totalAllocated == 0);
+  assert(allocator_instance_count == 0);
 }
 
 void test_mixed_custom_allocator_type_erasure()
 {
+  assert(allocator_instance_count == 0);
+
   // Show that different allocators can be used within a vector of tasks
   // of the same type. ie. that the allocator is type-erased inside the
   // coroutine.
@@ -149,10 +156,16 @@ void test_mixed_custom_allocator_type_erasure()
     std::allocator_arg,
     my_allocator<char>{ std::make_shared<size_t>(0) }));
 
+  assert(allocator_instance_count > 0);
+
   for (auto& t : tasks)
   {
     coro::sync_wait(t);
   }
+
+  tasks.clear();
+
+  assert(allocator_instance_count == 0);
 }
 
 template<typename Allocator>
@@ -178,12 +191,40 @@ void test_task_custom_allocator_with_extra_args()
   }
 }
 
+struct some_type {
+  template<typename Allocator>
+  coro::task<int> get_async(std::allocator_arg_t, [[maybe_unused]] Allocator alloc) {
+    co_return 42;
+  }
+
+  template<typename Allocator>
+  coro::task<int> add_async(std::allocator_arg_t, [[maybe_unused]] Allocator alloc, int a, int b) {
+    co_return a + b;
+  }
+};
+
+void test_task_custom_allocator_on_member_function()
+{
+  assert(allocator_instance_count == 0);
+
+  auto totalAllocated = std::make_shared<size_t>(0);
+  some_type obj;
+  assert(sync_wait(obj.get_async(std::allocator_arg, std::allocator<char>{})) == 42);
+  assert(sync_wait(obj.get_async(std::allocator_arg, my_allocator<char>{totalAllocated})) == 42);
+  assert(sync_wait(obj.add_async(std::allocator_arg, std::allocator<char>{}, 2, 3)) == 5);
+  assert(sync_wait(obj.add_async(std::allocator_arg, my_allocator<char>{totalAllocated}, 2, 3)) == 5);
+
+  assert(allocator_instance_count == 0);
+  assert(*totalAllocated == 0);
+}
+
 int main()
 {
   test_custom_allocator_is_destructed();
   test_custom_allocator_type_rebinding();
   test_mixed_custom_allocator_type_erasure();
   test_task_custom_allocator_with_extra_args();
+  test_task_custom_allocator_on_member_function();
 
   return 0;
 }
