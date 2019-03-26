@@ -580,6 +580,7 @@ module std [system] {
       export *
     }
     module task {
+      requires coroutines
       header "experimental/task"
       export *
     }
