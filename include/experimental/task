@@ -147,7 +147,7 @@ public:
       // however they aren't required to be declared noexcept so we can't
       // actually check this with a static_assert.
       //
-      // static_assert(is_nothrow_move_constructible<_Alloc>::value,
+      // static_assert(is_nothrow_move_constructible_v<_Alloc>,
       //              "task<T> coroutine custom allocator requires a noexcept "
       //              "move constructor");
 
@@ -258,7 +258,7 @@ public:
   // Only enable return_value() overload if _Tp is implicitly constructible from
   // _Value
   template <typename _Value,
-            enable_if_t<is_convertible<_Value, _Tp>::value, int> = 0>
+            enable_if_t<is_convertible_v<_Value, _Tp>, int> = 0>
   void return_value(_Value&& __value)
       _NOEXCEPT_((is_nothrow_constructible_v<_Tp, _Value>)) {
     __construct_value(static_cast<_Value&&>(__value));
