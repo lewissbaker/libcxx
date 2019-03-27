@@ -264,11 +264,10 @@ public:
     __construct_value(static_cast<_Value&&>(__value));
   }
 
-  template <typename _Value>
-  auto return_value(initializer_list<_Value> __initializer) _NOEXCEPT_(
-      (is_nothrow_constructible_v<_Tp, initializer_list<_Value>>))
-      -> enable_if_t<
-          is_constructible_v<_Tp, initializer_list<_Value>>> {
+  template <typename _Value,
+            enable_if_t<is_constructible_v<_Tp, initializer_list<_Value>>, int> = 0>
+  void return_value(initializer_list<_Value> __initializer) _NOEXCEPT_(
+      (is_nothrow_constructible_v<_Tp, initializer_list<_Value>>)) {
     __construct_value(_VSTD::move(__initializer));
   }
 
