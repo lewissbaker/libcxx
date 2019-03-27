@@ -79,8 +79,81 @@ void test_return_value_lifetime()
   }
 }
 
+struct my_error {};
+
+struct throws_on_destruction
+{
+  ~throws_on_destruction() noexcept(false)
+  {
+    throw my_error{};
+  }
+};
+
+void test_uncaught_exception_thrown_after_co_return()
+{
+  counted::reset();
+
+  assert(counted::active_instance_count() == 0);
+  assert(counted::copy_constructor_count() == 0);
+  assert(counted::move_constructor_count() == 0);
+
+  {
+    auto t = []() -> std::experimental::task<counted>
+    {
+      throws_on_destruction d;
+      co_return counted{};
+    }();
+
+    try {
+      (void)sync_wait(std::move(t));
+      assert(false);
+    } catch (const my_error&) {
+    }
+
+    assert(counted::active_instance_count() == 0);
+    assert(counted::copy_constructor_count() == 0);
+    assert(counted::move_constructor_count() > 0);
+    assert(counted::default_constructor_count() == 1);
+  }
+
+  assert(counted::active_instance_count() == 0);
+}
+
+void test_exception_thrown_and_caught_after_co_return()
+{
+  counted::reset();
+
+  assert(counted::active_instance_count() == 0);
+  assert(counted::copy_constructor_count() == 0);
+  assert(counted::move_constructor_count() == 0);
+
+  {
+    auto t = []() -> std::experimental::task<counted>
+    {
+      try {
+        throws_on_destruction d;
+        co_return counted{};
+      } catch(const my_error&) {
+        co_return counted{};
+      }
+    }();
+
+    auto c = sync_wait(std::move(t));
+    assert(c.id() == 2);
+
+    assert(counted::active_instance_count() == 2);
+    assert(counted::copy_constructor_count() == 0);
+    assert(counted::move_constructor_count() > 0);
+    assert(counted::default_constructor_count() == 2);
+  }
+
+  assert(counted::active_instance_count() == 0);
+}
+
 int main()
 {
   test_return_value_lifetime();
+  test_uncaught_exception_thrown_after_co_return();
+  test_exception_thrown_and_caught_after_co_return();
   return 0;
 }

@@ -231,7 +231,7 @@ public:
       break;
     case _State::__no_value:
       break;
-    };
+    }
   }
 
   _LIBCPP_INLINE_VISIBILITY
@@ -239,6 +239,13 @@ public:
 
   void unhandled_exception() _NOEXCEPT {
 #ifndef _LIBCPP_NO_EXCEPTIONS
+    if (__state_ == _State::__value) {
+      __state_ = _State::__no_value;
+      __value_.~_Tp();
+    }
+    _LIBCPP_ASSERT(
+      __state_ == _State::__no_value,
+      "Storage for the result should not already hold a value.");
     ::new (static_cast<void*>(&__exception_))
         exception_ptr(current_exception());
     __state_ = _State::__exception;
@@ -284,11 +291,24 @@ public:
 private:
   template <typename... _Args>
   void __construct_value(_Args&&... __args) {
+    // It's possible that this could be called multiple times in the case that
+    // an exception is thrown from a destructor of an in-scope variable after
+    // executing co_return, that exception is then caught and a new co_return
+    // statement is executed. So make sure we destruct any prior constructed
+    // return value before constructing a new value in its place.
+    if (__state_ == _State::__value) {
+      __state_ = _State::__no_value;
+      __value_.~_Tp();
+    }
+    _LIBCPP_ASSERT(
+      __state_ == _State::__no_value,
+      "Storage for the return-value should not already hold a value.");
     ::new (static_cast<void*>(_VSTD::addressof(__value_)))
         _Tp(static_cast<_Args&&>(__args)...);
 
     // Only set __state_ after successfully constructing the value.
-    // If constructor throws then state will be updated by
+    // If constructor throws then exception will propagate to the
+    // coroutine and if uncaught may eventually end up calling
     // unhandled_exception().
     __state_ = _State::__value;
   }
