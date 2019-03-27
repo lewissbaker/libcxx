@@ -303,7 +303,7 @@ private:
 
   enum class _State { __no_value, __value, __exception };
 
-  _State __state_ = _State::__no_value;
+  _State __state_;
   union {
     char __empty_;
     _Tp __value_;
