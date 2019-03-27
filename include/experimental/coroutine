@@ -60,9 +60,9 @@ template <class P> struct hash<coroutine_handle<P>>;
 
 #ifdef _LIBCPP_HAS_NO_COROUTINES
 # if defined(_LIBCPP_WARNING)
-    _LIBCPP_WARNING("<experimental/coroutine> cannot be used with this compiler")
+    _LIBCPP_WARNING("<experimental/coroutine> requires a compiler with support for coroutines")
 # else
-#   warning <experimental/coroutine> cannot be used with this compiler
+#   warning <experimental/coroutine> requires a compiler with support for coroutines
 # endif
 #endif
 

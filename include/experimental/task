@@ -26,9 +26,9 @@
 
 #ifdef _LIBCPP_HAS_NO_COROUTINES
 #if defined(_LIBCPP_WARNING)
-_LIBCPP_WARNING("<experimental/task> cannot be used with this compiler")
+_LIBCPP_WARNING("<experimental/task> requires a compiler with support for coroutines")
 #else
-#warning <experimental/task> cannot be used with this compiler
+#warning <experimental/task> requires a compiler with support for coroutines
 #endif
 #endif
 
