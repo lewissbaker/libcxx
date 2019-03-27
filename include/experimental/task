@@ -224,11 +224,11 @@ public:
     case _State::__value:
       __value_.~_Tp();
       break;
-#ifndef _LIBCPP_NO_EXCEPTIONS
     case _State::__exception:
+#ifndef _LIBCPP_NO_EXCEPTIONS
       __exception_.~exception_ptr();
-      break;
 #endif
+      break;
     case _State::__no_value:
       break;
     };
