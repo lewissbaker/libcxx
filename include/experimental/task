@@ -265,16 +265,16 @@ public:
   }
 
   template <typename _Value>
-  auto return_value(std::initializer_list<_Value> __initializer) _NOEXCEPT_(
-      (is_nothrow_constructible_v<_Tp, std::initializer_list<_Value>>))
-      -> std::enable_if_t<
-          std::is_constructible_v<_Tp, std::initializer_list<_Value>>> {
+  auto return_value(initializer_list<_Value> __initializer) _NOEXCEPT_(
+      (is_nothrow_constructible_v<_Tp, initializer_list<_Value>>))
+      -> enable_if_t<
+          is_constructible_v<_Tp, initializer_list<_Value>>> {
     __construct_value(_VSTD::move(__initializer));
   }
 
   auto return_value(_Tp&& __value)
       _NOEXCEPT_((is_nothrow_move_constructible_v<_Tp>))
-          -> std::enable_if_t<std::is_move_constructible_v<_Tp>> {
+          -> enable_if_t<is_move_constructible_v<_Tp>> {
     __construct_value(static_cast<_Tp&&>(__value));
   }
 
