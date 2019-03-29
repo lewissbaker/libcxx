@@ -23,7 +23,7 @@ namespace coro = std::experimental::coroutines_v1;
 
 namespace
 {
-  static size_t allocator_instance_count = 0;
+  std::size_t allocator_instance_count = 0;
 
   // A custom allocator that tracks the number of allocator instances that
   // have been constructed/destructed as well as the number of bytes that
@@ -32,12 +32,11 @@ namespace
   class my_allocator {
   public:
     using value_type = T;
-    using size_type = std::size_t;
-    using difference_type = std::ptrdiff_t;
-    using is_always_equal = std::false_type;
+    // Omit size_type, difference_type, is_always_equal to check that task<T>
+    // implementation is using allocator_traits which provides defaults for these.
 
     explicit my_allocator(
-      std::shared_ptr<size_type> totalAllocated) noexcept
+      std::shared_ptr<std::size_t> totalAllocated) noexcept
       : totalAllocated_(std::move(totalAllocated))
     {
       ++allocator_instance_count;
@@ -72,21 +71,25 @@ namespace
 
     ~my_allocator()
     {
+      assert(allocator_instance_count > 0);
       --allocator_instance_count;
     }
 
-    char* allocate(size_t n) {
+    T* allocate(std::size_t n) {
+      assert(totalAllocated_);
       const auto byteCount = n * sizeof(T);
       void* p = std::malloc(byteCount);
       if (!p) {
         throw std::bad_alloc{};
       }
       *totalAllocated_ += byteCount;
-      return static_cast<char*>(p);
+      return static_cast<T*>(p);
     }
 
-    void deallocate(char* p, size_t n) {
+    void deallocate(char* p, std::size_t n) {
       const auto byteCount = n * sizeof(T);
+      assert(totalAllocated_);
+      assert(byteCount <= *totalAllocated_);
       *totalAllocated_ -= byteCount;
       std::free(p);
     }
@@ -94,7 +97,7 @@ namespace
     template<typename U>
     friend class my_allocator;
 
-    std::shared_ptr<size_type> totalAllocated_;
+    std::shared_ptr<std::size_t> totalAllocated_;
   };
 }
 
@@ -106,7 +109,7 @@ coro::task<void> f(std::allocator_arg_t, [[maybe_unused]] Allocator alloc)
 
 void test_custom_allocator_is_destructed()
 {
-  auto totalAllocated = std::make_shared<size_t>(0);
+  auto totalAllocated = std::make_shared<std::size_t>(0);
 
   assert(allocator_instance_count == 0);
 
@@ -127,7 +130,7 @@ void test_custom_allocator_is_destructed()
 
 void test_custom_allocator_type_rebinding()
 {
-  auto totalAllocated = std::make_shared<size_t>(0);
+  auto totalAllocated = std::make_shared<std::size_t>(0);
   {
     std::vector<coro::task<>> tasks;
     tasks.emplace_back(
@@ -207,7 +210,7 @@ void test_task_custom_allocator_on_member_function()
 {
   assert(allocator_instance_count == 0);
 
-  auto totalAllocated = std::make_shared<size_t>(0);
+  auto totalAllocated = std::make_shared<std::size_t>(0);
   some_type obj;
   assert(::sync_wait(obj.get_async(std::allocator_arg, std::allocator<char>{})) == 42);
   assert(::sync_wait(obj.get_async(std::allocator_arg, my_allocator<char>{totalAllocated})) == 42);
