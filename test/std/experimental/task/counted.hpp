@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef _LIBCPP_TEST_EXPERIMENTAL_TASK_COUNTED
-#define _LIBCPP_TEST_EXPERIMENTAL_TASK_COUNTED
+#ifndef TEST_EXPERIMENTAL_TASK_COUNTED_HPP
+#define TEST_EXPERIMENTAL_TASK_COUNTED_HPP
 
 class counted
 {

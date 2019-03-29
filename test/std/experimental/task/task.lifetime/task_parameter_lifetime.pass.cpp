@@ -34,7 +34,7 @@ void test_parameter_lifetime()
     assert(counted::copy_constructor_count() == 0);
     assert(counted::move_constructor_count() <= 2); // Ideally <= 1
 
-    auto id = sync_wait(t);
+    auto id = ::sync_wait(t);
     assert(id == 1);
 
     assert(counted::active_instance_count() == 1);

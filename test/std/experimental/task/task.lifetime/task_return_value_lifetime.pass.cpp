@@ -40,7 +40,7 @@ void test_return_value_lifetime()
     assert(counted::move_constructor_count() == 0);
 
     {
-      auto c = sync_wait(std::move(t));
+      auto c = ::sync_wait(std::move(t));
       assert(c.id() == 1);
 
       assert(counted::active_instance_count() == 2);
@@ -65,7 +65,7 @@ void test_return_value_lifetime()
     assert(counted::move_constructor_count() == 0);
 
     {
-      auto c = sync_wait(std::move(t));
+      auto c = ::sync_wait(std::move(t));
       assert(c.id() == 1);
 
       assert(counted::active_instance_count() == 2);
@@ -105,7 +105,7 @@ void test_uncaught_exception_thrown_after_co_return()
     }();
 
     try {
-      (void)sync_wait(std::move(t));
+      (void)::sync_wait(std::move(t));
       assert(false);
     } catch (const my_error&) {
     }
@@ -138,7 +138,7 @@ void test_exception_thrown_and_caught_after_co_return()
       }
     }();
 
-    auto c = sync_wait(std::move(t));
+    auto c = ::sync_wait(std::move(t));
     assert(c.id() == 2);
 
     assert(counted::active_instance_count() == 2);

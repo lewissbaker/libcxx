@@ -31,7 +31,7 @@ static void test_coroutine_executes_lazily()
 {
   coro::task<void> t = f();
   assert(!has_f_executed);
-  coro::sync_wait(t);
+  ::sync_wait(t);
   assert(has_f_executed);
 }
 
@@ -47,7 +47,7 @@ void test_coroutine_accepts_arguments()
 {
   auto t = g(123);
   assert(!last_value_passed_to_g);
-  coro::sync_wait(t);
+  ::sync_wait(t);
   assert(last_value_passed_to_g);
   assert(*last_value_passed_to_g == 123);
 }
@@ -72,7 +72,7 @@ void test_async_completion()
   manual_reset_event e;
   std::thread t1{ [&e]
   {
-    sync_wait(consume_async(e));
+    ::sync_wait(consume_async(e));
   }};
 
   assert(read_value == 0);

@@ -132,7 +132,7 @@ void test_custom_allocator_type_rebinding()
     std::vector<coro::task<>> tasks;
     tasks.emplace_back(
       f(std::allocator_arg, my_allocator<int>{ totalAllocated }));
-    coro::sync_wait(tasks[0]);
+    ::sync_wait(tasks[0]);
   }
   assert(*totalAllocated == 0);
   assert(allocator_instance_count == 0);
@@ -160,7 +160,7 @@ void test_mixed_custom_allocator_type_erasure()
 
   for (auto& t : tasks)
   {
-    coro::sync_wait(t);
+    ::sync_wait(t);
   }
 
   tasks.clear();
@@ -187,7 +187,7 @@ void test_task_custom_allocator_with_extra_args()
 
   for (int i = 0; i < 5; ++i)
   {
-    assert(sync_wait(std::move(tasks[i])) == 3 * i);
+    assert(::sync_wait(std::move(tasks[i])) == 3 * i);
   }
 }
 
@@ -209,10 +209,10 @@ void test_task_custom_allocator_on_member_function()
 
   auto totalAllocated = std::make_shared<size_t>(0);
   some_type obj;
-  assert(sync_wait(obj.get_async(std::allocator_arg, std::allocator<char>{})) == 42);
-  assert(sync_wait(obj.get_async(std::allocator_arg, my_allocator<char>{totalAllocated})) == 42);
-  assert(sync_wait(obj.add_async(std::allocator_arg, std::allocator<char>{}, 2, 3)) == 5);
-  assert(sync_wait(obj.add_async(std::allocator_arg, my_allocator<char>{totalAllocated}, 2, 3)) == 5);
+  assert(::sync_wait(obj.get_async(std::allocator_arg, std::allocator<char>{})) == 42);
+  assert(::sync_wait(obj.get_async(std::allocator_arg, my_allocator<char>{totalAllocated})) == 42);
+  assert(::sync_wait(obj.add_async(std::allocator_arg, std::allocator<char>{}, 2, 3)) == 5);
+  assert(::sync_wait(obj.add_async(std::allocator_arg, my_allocator<char>{totalAllocated}, 2, 3)) == 5);
 
   assert(allocator_instance_count == 0);
   assert(*totalAllocated == 0);

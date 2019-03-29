@@ -8,76 +8,78 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef _LIBCPP_TEST_EXPERIMENTAL_TASK_SYNC_WAIT
-#define _LIBCPP_TEST_EXPERIMENTAL_TASK_SYNC_WAIT
+#ifndef TEST_EXPERIMENTAL_TASK_SYNC_WAIT_HPP
+#define TEST_EXPERIMENTAL_TASK_SYNC_WAIT_HPP
 
 #include <experimental/__config>
 #include <experimental/coroutine>
 #include <type_traits>
 #include <mutex>
 #include <condition_variable>
+#include <cassert>
 
 #include "awaitable_traits.hpp"
+#include "test_macros.h"
 
-_LIBCPP_BEGIN_NAMESPACE_EXPERIMENTAL_COROUTINES
+namespace test_detail {
 
 // Thread-synchronisation helper that allows one thread to block in a call
 // to .wait() until another thread signals the thread by calling .set().
-class __oneshot_event
+class oneshot_event
 {
 public:
-  __oneshot_event() : __isSet_(false) {}
+  oneshot_event() : isSet_(false) {}
 
   void set() noexcept
   {
-    unique_lock<mutex> __lock{ __mutex_ };
-    __isSet_ = true;
-    __cv_.notify_all();
+    std::unique_lock<std::mutex> lock{ mutex_ };
+    isSet_ = true;
+    cv_.notify_all();
   }
 
   void wait() noexcept
   {
-    unique_lock<mutex> __lock{ __mutex_ };
-    __cv_.wait(__lock, [this] { return __isSet_; });
+    std::unique_lock<std::mutex> lock{ mutex_ };
+    cv_.wait(lock, [this] { return isSet_; });
   }
 
 private:
-  mutex __mutex_;
-  condition_variable __cv_;
-  bool __isSet_;
+  std::mutex mutex_;
+  std::condition_variable cv_;
+  bool isSet_;
 };
 
-template<typename _Derived>
-class __sync_wait_promise_base
+template<typename Derived>
+class sync_wait_promise_base
 {
 public:
 
-  using __handle_t = coroutine_handle<_Derived>;
+  using handle_t = std::experimental::coroutine_handle<Derived>;
 
 private:
 
-  struct _FinalAwaiter
+  struct FinalAwaiter
   {
       bool await_ready() noexcept { return false; }
-      void await_suspend(__handle_t __coro) noexcept
+      void await_suspend(handle_t coro) noexcept
       {
-        __sync_wait_promise_base& __promise = __coro.promise();
-        __promise.__event_.set();
+        sync_wait_promise_base& promise = coro.promise();
+        promise.event_.set();
       }
       void await_resume() noexcept {}
   };
 
 public:
 
-  __handle_t get_return_object() { return __handle(); }
-  suspend_always initial_suspend() { return {}; }
-  _FinalAwaiter final_suspend() { return {}; }
+  handle_t get_return_object() { return handle(); }
+  std::experimental::suspend_always initial_suspend() { return {}; }
+  FinalAwaiter final_suspend() { return {}; }
 
 private:
 
-  __handle_t __handle() noexcept
+  handle_t handle() noexcept
   {
-    return __handle_t::from_promise(static_cast<_Derived&>(*this));
+    return handle_t::from_promise(static_cast<Derived&>(*this));
   }
 
 protected:
@@ -85,36 +87,36 @@ protected:
   // Start the coroutine and then block waiting for it to finish.
   void run() noexcept
   {
-    __handle().resume();
-    __event_.wait();
+    handle().resume();
+    event_.wait();
   }
 
 private:
 
-  __oneshot_event __event_;
+  oneshot_event event_;
 
 };
 
-template<typename _Tp>
-class __sync_wait_promise final
-  : public __sync_wait_promise_base<__sync_wait_promise<_Tp>>
+template<typename Tp>
+class sync_wait_promise final
+  : public sync_wait_promise_base<sync_wait_promise<Tp>>
 {
 public:
 
-  __sync_wait_promise() : __state_(_State::__empty) {}
+  sync_wait_promise() : state_(state_t::empty) {}
 
-  ~__sync_wait_promise()
+  ~sync_wait_promise()
   {
-    switch (__state_)
+    switch (state_)
     {
-      case _State::__empty:
-      case _State::__value:
+      case state_t::empty:
+      case state_t::value:
         break;
-#ifndef _LIBCPP_NO_EXCEPTIONS
-      case _State::__exception:
-        __exception_.~exception_ptr();
-        break;
+      case state_t::exception:
+#ifndef TEST_HAS_NO_EXCEPTIONS
+        exception_.~exception_ptr();
 #endif
+        break;
     }
   }
 
@@ -129,62 +131,63 @@ public:
 
   void unhandled_exception() noexcept
   {
-#ifndef _LIBCPP_NO_EXCEPTIONS
-    ::new (static_cast<void*>(&__exception_)) exception_ptr(
+#ifndef TEST_HAS_NO_EXCEPTIONS
+    ::new (static_cast<void*>(&exception_)) std::exception_ptr(
       std::current_exception());
-    __state_ = _State::__exception;
+    state_ = state_t::exception;
 #else
-    _VSTD::abort();
+    std::abort();
 #endif
   }
 
-  auto yield_value(_Tp&& __value) noexcept
+  auto yield_value(Tp&& value) noexcept
   {
-    __valuePtr_ = std::addressof(__value);
-    __state_ = _State::__value;
+    valuePtr_ = std::addressof(value);
+    state_ = state_t::value;
     return this->final_suspend();
   }
 
-  _Tp&& get()
+  Tp&& get()
   {
     this->run();
 
-#ifndef _LIBCPP_NO_EXCEPTIONS
-    if (__state_ == _State::__exception)
+#ifndef TEST_HAS_NO_EXCEPTIONS
+    if (state_ == state_t::exception)
     {
-      std::rethrow_exception(_VSTD::move(__exception_));
+      std::rethrow_exception(std::move(exception_));
     }
 #endif
 
-    return static_cast<_Tp&&>(*__valuePtr_);
+    assert(state_ == state_t::value);
+    return static_cast<Tp&&>(*valuePtr_);
   }
 
 private:
 
-  enum class _State {
-    __empty,
-    __value,
-    __exception
+  enum class state_t {
+    empty,
+    value,
+    exception
   };
 
-  _State __state_;
+  state_t state_;
   union {
-    std::add_pointer_t<_Tp> __valuePtr_;
-    std::exception_ptr __exception_;
+    std::add_pointer_t<Tp> valuePtr_;
+    std::exception_ptr exception_;
   };
 
 };
 
 template<>
-struct __sync_wait_promise<void> final
-  : public __sync_wait_promise_base<__sync_wait_promise<void>>
+struct sync_wait_promise<void> final
+  : public sync_wait_promise_base<sync_wait_promise<void>>
 {
 public:
 
   void unhandled_exception() noexcept
   {
-#ifndef _LIBCPP_NO_EXCEPTIONS
-    __exception_ = std::current_exception();
+#ifndef TEST_HAS_NO_EXCEPTIONS
+    exception_ = std::current_exception();
 #endif
   }
 
@@ -194,89 +197,89 @@ public:
   {
     this->run();
 
-#ifndef _LIBCPP_NO_EXCEPTIONS
-    if (__exception_)
+#ifndef TEST_HAS_NO_EXCEPTIONS
+    if (exception_)
     {
-      std::rethrow_exception(_VSTD::move(__exception_));
+      std::rethrow_exception(std::move(exception_));
     }
 #endif
   }
 
 private:
 
-  std::exception_ptr __exception_;
+  std::exception_ptr exception_;
 
 };
 
-template<typename _Tp>
-class __sync_wait_task final
+template<typename Tp>
+class sync_wait_task final
 {
 public:
-  using promise_type = __sync_wait_promise<_Tp>;
+  using promise_type = sync_wait_promise<Tp>;
 
 private:
-  using __handle_t = typename promise_type::__handle_t;
+  using handle_t = typename promise_type::handle_t;
 
 public:
 
-  __sync_wait_task(__handle_t __coro) noexcept : __coro_(__coro) {}
+  sync_wait_task(handle_t coro) noexcept : coro_(coro) {}
 
-  ~__sync_wait_task()
+  ~sync_wait_task()
   {
-    _LIBCPP_ASSERT(__coro_, "Should always have a valid coroutine handle");
-    __coro_.destroy();
+    assert(coro_ && "Should always have a valid coroutine handle");
+    coro_.destroy();
   }
 
   decltype(auto) get()
   {
-    return __coro_.promise().get();
+    return coro_.promise().get();
   }
 private:
-  __handle_t __coro_;
+  handle_t coro_;
 };
 
-template<typename _Tp>
-struct __remove_rvalue_reference
+template<typename Tp>
+struct remove_rvalue_reference
 {
-  using type = _Tp;
+  using type = Tp;
 };
 
-template<typename _Tp>
-struct __remove_rvalue_reference<_Tp&&>
+template<typename Tp>
+struct remove_rvalue_reference<Tp&&>
 {
-  using type = _Tp;
+  using type = Tp;
 };
 
-template<typename _Tp>
-using __remove_rvalue_reference_t =
-  typename __remove_rvalue_reference<_Tp>::type;
+template<typename Tp>
+using remove_rvalue_reference_t =
+  typename remove_rvalue_reference<Tp>::type;
 
 template<
-  typename _Awaitable,
-  typename _AwaitResult = await_result_t<_Awaitable>,
-  std::enable_if_t<std::is_void_v<_AwaitResult>, int> = 0>
-__sync_wait_task<_AwaitResult> __make_sync_wait_task(_Awaitable&& __awaitable)
+  typename Awaitable,
+  typename AwaitResult = await_result_t<Awaitable>,
+  std::enable_if_t<std::is_void_v<AwaitResult>, int> = 0>
+sync_wait_task<AwaitResult> make_sync_wait_task(Awaitable&& awaitable)
 {
-  co_await static_cast<_Awaitable&&>(__awaitable);
+  co_await static_cast<Awaitable&&>(awaitable);
 }
 
 template<
-  typename _Awaitable,
-  typename _AwaitResult = await_result_t<_Awaitable>,
-  std::enable_if_t<!std::is_void_v<_AwaitResult>, int> = 0>
-__sync_wait_task<_AwaitResult> __make_sync_wait_task(_Awaitable&& __awaitable)
+  typename Awaitable,
+  typename AwaitResult = await_result_t<Awaitable>,
+  std::enable_if_t<!std::is_void_v<AwaitResult>, int> = 0>
+sync_wait_task<AwaitResult> make_sync_wait_task(Awaitable&& awaitable)
 {
-  co_yield co_await static_cast<_Awaitable&&>(__awaitable);
+  co_yield co_await static_cast<Awaitable&&>(awaitable);
 }
 
-template<typename _Awaitable>
-auto sync_wait(_Awaitable&& __awaitable)
-  -> __remove_rvalue_reference_t<await_result_t<_Awaitable>>
-{
-  return _VSTD_CORO::__make_sync_wait_task(
-    static_cast<_Awaitable&&>(__awaitable)).get();
-}
+} // namespace test_detail
 
-_LIBCPP_END_NAMESPACE_EXPERIMENTAL_COROUTINES
+template<typename Awaitable>
+auto sync_wait(Awaitable&& awaitable)
+  -> test_detail::remove_rvalue_reference_t<await_result_t<Awaitable>>
+{
+  return test_detail::make_sync_wait_task(
+    static_cast<Awaitable&&>(awaitable)).get();
+}
 
 #endif
