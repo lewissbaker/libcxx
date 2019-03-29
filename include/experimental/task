@@ -216,6 +216,10 @@ template <typename _Tp>
 class _LIBCPP_TEMPLATE_VIS __task_promise final : public __task_promise_base {
   using _Handle = coroutine_handle<__task_promise>;
 
+  static_assert(
+    std::is_destructible_v<_Tp>,
+    "task<T> requires that T is destructible");
+
 public:
   __task_promise() _NOEXCEPT : __state_(_State::__no_value) {}
 
@@ -423,6 +427,15 @@ template <typename _Tp>
 class _LIBCPP_TEMPLATE_VIS _LIBCPP_NODISCARD_AFTER_CXX17 task {
 public:
   using promise_type = __task_promise<_Tp>;
+
+  static_assert(
+    std::is_same_v<_Tp, void> ||
+    std::is_lvalue_reference_v<_Tp> ||
+    (std::is_destructible_v<_Tp> &&
+     std::is_object_v<_Tp> &&
+     !std::is_array_v<_Tp>),
+    "task<T> supports only 'void', lvalue-reference or "
+    "a destructible, non-array object result types.");
 
 private:
   using _Handle = coroutine_handle<__task_promise<_Tp>>;
