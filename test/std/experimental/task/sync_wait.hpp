@@ -11,10 +11,10 @@
 #ifndef TEST_EXPERIMENTAL_TASK_SYNC_WAIT_HPP
 #define TEST_EXPERIMENTAL_TASK_SYNC_WAIT_HPP
 
-#include <experimental/__config>
 #include <experimental/coroutine>
 #include <type_traits>
 #include <mutex>
+#include <new>
 #include <condition_variable>
 #include <cassert>
 
