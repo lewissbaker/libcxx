@@ -86,7 +86,7 @@ void test_async_completion()
   t2.join();
 }
 
-int main()
+int main(int, char**)
 {
   test_coroutine_executes_lazily();
   test_coroutine_accepts_arguments();

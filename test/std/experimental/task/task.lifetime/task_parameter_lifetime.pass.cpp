@@ -48,7 +48,7 @@ void test_parameter_lifetime()
   assert(counted::active_instance_count() == 0);
 }
 
-int main()
+int main(int, char**)
 {
   test_parameter_lifetime();
   return 0;

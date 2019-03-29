@@ -148,7 +148,7 @@ void test_exception_thrown_and_caught_after_co_return()
   assert(counted::active_instance_count() == 0);
 }
 
-int main()
+int main(int, char**)
 {
   test_return_value_lifetime();
   test_uncaught_exception_thrown_after_co_return();

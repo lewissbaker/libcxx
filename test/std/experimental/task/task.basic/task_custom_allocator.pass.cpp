@@ -221,7 +221,7 @@ void test_task_custom_allocator_on_member_function()
   assert(*totalAllocated == 0);
 }
 
-int main()
+int main(int, char**)
 {
   test_custom_allocator_is_destructed();
   test_custom_allocator_type_rebinding();

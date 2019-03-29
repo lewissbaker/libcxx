@@ -60,7 +60,7 @@ void test_co_return_by_initialiser_list()
   assert(result[2] == -1);
 }
 
-int main()
+int main(int, char**)
 {
   test_returning_move_only_type();
   test_co_return_with_curly_braces();
