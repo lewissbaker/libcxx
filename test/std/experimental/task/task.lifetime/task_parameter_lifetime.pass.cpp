@@ -41,7 +41,8 @@ void test_parameter_lifetime()
     // We are relying on C++17 copy-elision when passing the temporary counter
     // into f(). Then f() must move the parameter into the coroutine frame by
     // calling the move-constructor. This move could also potentially be
-    // elided by the
+    // elided by the compiler if the parameter is not referenced after the
+    // first suspend-point.
     assert(counted::move_constructor_count() <= 1);
   }
 
