@@ -78,19 +78,12 @@ public:
 private:
   std::size_t id_;
 
-  static std::size_t nextId_;
-  static std::size_t defaultConstructedCount_;
-  static std::size_t copyConstructedCount_;
-  static std::size_t moveConstructedCount_;
-  static std::size_t destructedCount_;
+  inline static std::size_t nextId_;
+  inline static std::size_t defaultConstructedCount_;
+  inline static std::size_t copyConstructedCount_;
+  inline static std::size_t moveConstructedCount_;
+  inline static std::size_t destructedCount_;
 
 };
-
-#define DEFINE_COUNTED_VARIABLES() \
-  std::size_t counted::nextId_; \
-  std::size_t counted::defaultConstructedCount_; \
-  std::size_t counted::copyConstructedCount_; \
-  std::size_t counted::moveConstructedCount_; \
-  std::size_t counted::destructedCount_
 
 #endif

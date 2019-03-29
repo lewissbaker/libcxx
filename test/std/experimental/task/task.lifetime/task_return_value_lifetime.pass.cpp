@@ -17,8 +17,6 @@
 #include "../counted.hpp"
 #include "../sync_wait.hpp"
 
-DEFINE_COUNTED_VARIABLES();
-
 void test_return_value_lifetime()
 {
   counted::reset();
