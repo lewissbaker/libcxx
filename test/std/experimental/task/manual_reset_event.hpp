@@ -44,9 +44,9 @@ class manual_reset_event
 
       event_->awaitingCoroutine_ = coro;
 
-      // If the compare-exchange fails then this means that the event was
-      // already 'set' and so we should not suspend - this code path requires
-      // 'acquire' semantics so we have visibility of writes prior to the
+      // If the compare-exchange fails then the event was already 'set'
+      // so we should not suspend. This code path requires 'acquire'
+      // semantics so we have visibility of writes prior to the
       // .set() operation that transitioned the event to the 'set' state.
       // If the compare-exchange succeeds then this needs 'release' semantics
       // so that a subsequent call to .set() has visibility of our writes
@@ -81,9 +81,11 @@ public:
   {
     // Needs to be 'acquire' in case the old value was a waiting coroutine
     // so that we have visibility of the writes to the coroutine frame in
-    // the current thrad before we resume it.
+    // the current thread before we resume it.
     // Also needs to be 'release' in case the old value was 'not-set' so that
-    // another thread that subsequently awaits the
+    // another thread that subsequently awaits the event and reads the 'set'
+    // value with 'acquire' semantics has visibility of the prior writes that
+    // this thread performed.
     state_t oldState = state_.exchange(state_t::set, std::memory_order_acq_rel);
     if (oldState == state_t::not_set_waiting_coroutine)
     {
@@ -97,8 +99,8 @@ public:
       (state_.load(std::memory_order_relaxed) != state_t::not_set_waiting_coroutine) &&
       "Illegal to call reset() if a coroutine is currently awaiting the event.");
 
-    // Note, we use 'relaxed' memory order here since it considered a
-    // data-race to call reset() concurrently either with operator co_await()
+    // Note, we use 'relaxed' memory order here since it is considered an
+    // API-race to call reset() concurrently either with operator co_await()
     // or with set().
     state_.store(state_t::not_set, std::memory_order_relaxed);
   }
