@@ -15,9 +15,9 @@
 #include <atomic>
 
 // manual_reset_event is a coroutine synchronisation tool that allows one
-// coroutine to await the event object and if the event was not crrently
-// in the 'set' state then will suspend the awaiting coroutine until some
-// thread calls .set() on the event.
+// coroutine to await the event object. If the event is in the 'set' state
+// then it continues without suspending, otherwise the coroutine suspends
+// until some thread calls .set() on the event.
 class manual_reset_event
 {
   friend class _Awaiter;
