@@ -504,7 +504,7 @@ public:
     };
 
     _LIBCPP_ASSERT(__coro_,
-                   "Undefined behaviour to co_await an invalid task<T>");
+                   "co_await on an invalid task<T> has undefined behaviour");
     return _Awaiter{__coro_};
   }
 
