@@ -67,8 +67,6 @@ private:
       void await_resume() noexcept {}
   };
 
-  friend struct _FinalAwaiter;
-
 public:
 
   __handle_t get_return_object() { return __handle(); }

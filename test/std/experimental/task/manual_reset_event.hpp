@@ -20,8 +20,6 @@
 // until some thread calls .set() on the event.
 class manual_reset_event
 {
-  friend class _Awaiter;
-
   class _Awaiter
   {
   public:
